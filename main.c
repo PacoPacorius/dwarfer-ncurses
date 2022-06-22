@@ -1,0 +1,112 @@
+#include <stdlib.h>
+#include <string.h>
+#include <ncurses.h>
+#include <menu.h>
+
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+
+char* choices[] = { "New Dwarf Entry",
+                    "Modify Dwarf Entry",
+                    "Delete Dwarf Entry",
+                    "View Dwarf Entries",
+                    "Search In Dwarf Entries",
+                    "New Fort File",
+                    "Load Fort File",
+                    (char*) NULL,
+                    };
+
+WINDOW* create_win(int height, int width, int starty, int startx);
+
+int main(){
+    // init ncurses
+    initscr();
+    cbreak();
+    noecho();
+    keypad(stdscr, true);
+    start_color();
+    
+    // init menu
+    ITEM** my_items;
+    MENU* my_menu;
+    int n_choices;
+    ITEM* cur_items;
+
+    // variables / secondary initialisation
+    int c;
+    int i, j;
+    int height = LINES / 2, width = COLS / 3;
+    char* name = "DWARFER v0.0";
+    WINDOW* my_win = create_win(height, width, (LINES - height) / 2, (COLS - width) / 2);
+    getmaxyx(my_win, height, width);
+    WINDOW* sub_win = derwin(my_win, ARRAY_SIZE(choices) + 1, 30, 4, width - 45);
+
+    // menu initialisation
+    n_choices = ARRAY_SIZE(choices);
+    my_items = (ITEM**)calloc(n_choices, sizeof(ITEM*));
+    
+    for(i = 0; i < n_choices; ++i){
+        my_items[i] = new_item(choices[i], choices[i]);
+        }
+
+    my_menu = new_menu((ITEM**)my_items);
+
+    set_menu_win(my_menu, my_win);
+    set_menu_sub(my_menu, sub_win);
+
+    menu_opts_off(my_menu, O_SHOWDESC);
+    // color initialisation
+    init_color(COLOR_CYAN, 400, 800, 1000);
+    init_pair(1, COLOR_CYAN, COLOR_MAGENTA);
+    init_pair(2, COLOR_MAGENTA, COLOR_CYAN);
+
+    set_menu_fore(my_menu, COLOR_PAIR(1));
+    set_menu_back(my_menu, COLOR_PAIR(2));
+
+    attron(COLOR_PAIR(1));
+    mvwaddstr(my_win, 1, (width - strlen(name)) / 2, name);
+    wbkgd(my_win, COLOR_PAIR(1));
+    attroff(COLOR_PAIR(1));
+
+    // main program
+    refresh();
+    post_menu(my_menu);
+    wrefresh(my_win);
+
+    keypad(my_win, true);
+    while((c = wgetch(my_win)) != 'q'){
+        switch(c){
+        case KEY_UP:
+            menu_driver(my_menu, REQ_UP_ITEM);
+            break;
+        case KEY_DOWN:
+            menu_driver(my_menu, REQ_DOWN_ITEM);
+            break;
+            }
+        wrefresh(my_win);
+    }
+    unpost_menu(my_menu);
+    free_menu(my_menu);
+    for(i = 0; i < n_choices; ++i)
+        free_item(my_items[i]);
+    endwin();
+    return 0;
+}
+
+
+WINDOW* create_win(int height, int width, int starty, int startx){
+    WINDOW* local_win;
+
+    local_win = newwin(height, width, starty, startx);
+    box(local_win, 0, 0);
+
+    wrefresh(local_win);
+
+    return local_win;
+}
+
+void destroy_win(WINDOW* local_win){
+    wborder(local_win, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+
+    wrefresh(local_win);
+    delwin(local_win);
+}
