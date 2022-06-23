@@ -2,6 +2,7 @@
 #include <string.h>
 #include <ncurses.h>
 #include <menu.h>
+#include "menu_func.h"
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
@@ -17,7 +18,7 @@ char* choices[] = { "New Dwarf Entry",
 
 WINDOW* create_win(int height, int width, int starty, int startx);
 
-void func(char* name, WINDOW* win);
+void menu_func_caller(char* name, WINDOW* win);
 
 int main(){
     // init ncurses
@@ -49,7 +50,7 @@ int main(){
     for(i = 0; i < n_choices; ++i){
         my_items[i] = new_item(choices[i], choices[i]);
 
-        set_item_userptr(my_items[i], func);    // set user pointer for functions
+        set_item_userptr(my_items[i], menu_func_caller);    // set user pointer for functions
         }
 
     my_menu = new_menu((ITEM**)my_items);
@@ -62,6 +63,7 @@ int main(){
     init_color(COLOR_CYAN, 400, 800, 1000);
     init_pair(1, COLOR_CYAN, COLOR_MAGENTA);
     init_pair(2, COLOR_MAGENTA, COLOR_CYAN);
+    init_pair(3, COLOR_YELLOW, COLOR_RED);
 
     set_menu_fore(my_menu, COLOR_PAIR(1));
     set_menu_back(my_menu, COLOR_PAIR(2));
@@ -91,7 +93,7 @@ int main(){
 
             cur_item = current_item(my_menu);
             p = item_userptr(cur_item);
-            p((char* )item_name(cur_item), my_win); // what in the world is going on here
+            p((char* )item_name(cur_item), my_win); // what in the world is going on here, function pointers biccth!
             pos_menu_cursor(my_menu);
             break;
             }
@@ -99,10 +101,14 @@ int main(){
             
         wrefresh(my_win);
     }
+
+    // free memory, end ncurses mode
     unpost_menu(my_menu);
     free_menu(my_menu);
     for(i = 0; i < n_choices; ++i)
         free_item(my_items[i]);
+    destroy_win(my_win);
+    destroy_win(sub_win);
     endwin();
     return 0;
 }
@@ -126,11 +132,20 @@ void destroy_win(WINDOW* local_win){
     delwin(local_win);
 }
 
-void func(char* name, WINDOW* win){
+void menu_func_caller(char* name, WINDOW* win){
     int y,x;
     getyx(win, y, x);
     mvwprintw(win, 13, 3, "                         "); // erase previous print
     wmove(win, 13, 3);
     wprintw(win, name);
+    //waddch(win, ':');
     wmove(win, y, x);
+
+    if(name == "New Dwarf Entry") add_new_dwarf(name, win);
+    else if(name == "Modify Dwarf Entry") dummy_func(name, win);
+    else if(name == "Delete Dwarf Entry") dummy_func(name, win);
+    else if(name == "View Dwarf Entries") dummy_func(name, win);
+    else if(name == "Search In Dwarf Entries") dummy_func(name, win);
+    else if(name == "New Fort File") dummy_func(name, win);
+    else if(name == "Load Fort File") dummy_func(name, win);
 }
