@@ -17,6 +17,8 @@ char* choices[] = { "New Dwarf Entry",
 
 WINDOW* create_win(int height, int width, int starty, int startx);
 
+void func(char* name, WINDOW* win);
+
 int main(){
     // init ncurses
     initscr();
@@ -25,17 +27,17 @@ int main(){
     keypad(stdscr, true);
     start_color();
     
-    // init menu
+    // menu variables
     ITEM** my_items;
     MENU* my_menu;
     int n_choices;
-    ITEM* cur_items;
+    ITEM* cur_item;
 
     // variables / secondary initialisation
     int c;
     int i, j;
     int height = LINES / 2, width = COLS / 3;
-    char* name = "DWARFER v0.0";
+    char* menu_title = "DWARFER v0.0";
     WINDOW* my_win = create_win(height, width, (LINES - height) / 2, (COLS - width) / 2);
     getmaxyx(my_win, height, width);
     WINDOW* sub_win = derwin(my_win, ARRAY_SIZE(choices) + 1, 30, 4, width - 45);
@@ -46,6 +48,8 @@ int main(){
     
     for(i = 0; i < n_choices; ++i){
         my_items[i] = new_item(choices[i], choices[i]);
+
+        set_item_userptr(my_items[i], func);    // set user pointer for functions
         }
 
     my_menu = new_menu((ITEM**)my_items);
@@ -63,7 +67,7 @@ int main(){
     set_menu_back(my_menu, COLOR_PAIR(2));
 
     attron(COLOR_PAIR(1));
-    mvwaddstr(my_win, 1, (width - strlen(name)) / 2, name);
+    mvwaddstr(my_win, 1, (width - strlen(menu_title)) / 2, menu_title);
     wbkgd(my_win, COLOR_PAIR(1));
     attroff(COLOR_PAIR(1));
 
@@ -81,7 +85,18 @@ int main(){
         case KEY_DOWN:
             menu_driver(my_menu, REQ_DOWN_ITEM);
             break;
+        case '\n':
+            {
+            void(* p)(char *, WINDOW *);
+
+            cur_item = current_item(my_menu);
+            p = item_userptr(cur_item);
+            p((char* )item_name(cur_item), my_win); // what in the world is going on here
+            pos_menu_cursor(my_menu);
+            break;
             }
+         }
+            
         wrefresh(my_win);
     }
     unpost_menu(my_menu);
@@ -109,4 +124,13 @@ void destroy_win(WINDOW* local_win){
 
     wrefresh(local_win);
     delwin(local_win);
+}
+
+void func(char* name, WINDOW* win){
+    int y,x;
+    getyx(win, y, x);
+    mvwprintw(win, 13, 3, "                         "); // erase previous print
+    wmove(win, 13, 3);
+    wprintw(win, name);
+    wmove(win, y, x);
 }
